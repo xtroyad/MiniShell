@@ -8,19 +8,19 @@ int main(){
     signal (SIGINT, SIG_IGN);//Ignoramos la señal CTLR+C
     int pid;
 
-    while(1){
-        printf("msh> ");
-
+    while(1){ 
+        
         while(fgets(buf, 1024, stdin)){
+            printf("msh> ");
             comando = tokenize(buf); 
-            if (comando->commands->argv=="exit"){//cuando tenemos exit or CTLR+D terminamos
+            if (comando->commands->argv[0]=="exit"){//cuando tenemos exit or CTLR+D terminamos
                 kill(getpid(),19); //mandamos un SIGSTOP para MyShell
             }
             pid = fork();
             if (pid<0){
                 fprintf(stderr,"Error a la hora de hacer el fork");        
-            }else if(pid>0){
-                execvp(comando->commands->argv[1], comando->commands->argv+1);
+            }else if(pid==0){
+                execvp(comando->commands->argv[0], comando->commands->argv);
                 fprintf(stderr,"Error a la hora de hacer el comando");
                 exit(1);
             }else{
