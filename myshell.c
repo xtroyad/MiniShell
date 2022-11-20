@@ -2,7 +2,7 @@
 #include "parser.h"
 #include <signal.h>
 #include <stdlib.h>
-
+#include <string.h>
 int main(){ 
     char buf[1024];
     tline * comando;
@@ -14,7 +14,7 @@ int main(){
     while(fgets(buf, 1024, stdin)){
         
         comando = tokenize(buf); 
-        if (comando->commands[0].argv[0]=="exit"){//cuando tenemos exit or CTLR+D terminamos
+        if (strcmp(comando->commands[0].argv[0],"exit")==0) {//cuando tenemos exit or CTLR+D terminamos
             kill(getpid(),19); //mandamos un SIGSTOP para MyShell
             exit(1);
         }
