@@ -3,11 +3,12 @@
 #include <signal.h>
 #include <stdlib.h>
 #include <string.h>
+int pid;
 int main(){ 
     char buf[1024];
     tline * comando;
-    signal (SIGINT, manejador);//Ignoramos la señal CTLR+C
-    int pid;
+    signal (SIGINT, SIG_IGN);//Ignoramos la señal CTLR+C
+    
 
     
     printf("msh> ");
@@ -16,7 +17,6 @@ int main(){
         comando = tokenize(buf); 
         if (strcmp(comando->commands[0].argv[0],"exit")==0) {//cuando tenemos exit or CTLR+D terminamos
             kill(getpid(),19); //mandamos un SIGSTOP para MyShell
-            exit(1);
         }
         pid = fork();
         if (pid<0){
@@ -34,9 +34,9 @@ int main(){
     return 0;
 }
 
-int manejador(int sig){
-    if (getpid()!=0){
-        exit(0);
+void manejador(int sig){
+    if (pid!=0){
+       
     }else{
 
     }
