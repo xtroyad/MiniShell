@@ -20,12 +20,13 @@ int main(){
     while(fgets(buf, 1024, stdin)){
         
         comando = tokenize(buf); 
-        if (comando==NULL) {
+        if (comando->ncommands==0) {
+            printf("\nmsh> ");
 			continue;
 		}
-        /*if (strcmp(comando->commands[0].argv[0],"exit")==0) {//cuando tenemos exit or CTLR+D terminamos
+        if (strcmp(comando->commands[0].argv[0],"exit")==0) {//cuando tenemos exit or CTLR+D terminamos
             kill(getpid(),19); //mandamos un SIGSTOP para MyShell
-        }*/
+        }
         pid = fork();
         if (pid<0){
             fprintf(stderr,"Error a la hora de hacer el fork\n");        
@@ -40,10 +41,4 @@ int main(){
         
     }
     return 0;
-<<<<<<< HEAD
 }
-=======
-
-
-
->>>>>>> 5efbeb7881d10c446489bb43f08f2467919ae930
