@@ -16,8 +16,6 @@ int main(){
     tline * comando;
     signal (SIGINT, SIG_IGN);//Ignoramos la señal CTLR+C
     
-
-    
     printf("msh> ");
     while(fgets(buf, 1024, stdin)){
         
@@ -38,7 +36,7 @@ int main(){
         }else{
             wait(NULL);
         }
-        printf("msh> ");
+        printf("\nmsh> ");
         
     }
     return 0;
