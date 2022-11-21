@@ -4,6 +4,13 @@
 #include <stdlib.h>
 #include <string.h>
 int pid;
+
+void manejador(int sig){
+	if(pid == 0){
+		kill(getpid(), 19);
+	}
+}
+
 int main(){ 
     char buf[1024];
     tline * comando;
@@ -15,15 +22,18 @@ int main(){
     while(fgets(buf, 1024, stdin)){
         
         comando = tokenize(buf); 
-        if (strcmp(comando->commands[0].argv[0],"exit")==0) {//cuando tenemos exit or CTLR+D terminamos
+        if (comando==NULL) {
+			continue;
+		}
+        /*if (strcmp(comando->commands[0].argv[0],"exit")==0) {//cuando tenemos exit or CTLR+D terminamos
             kill(getpid(),19); //mandamos un SIGSTOP para MyShell
-        }
+        }*/
         pid = fork();
         if (pid<0){
-            fprintf(stderr,"Error a la hora de hacer el fork");        
+            fprintf(stderr,"Error a la hora de hacer el fork\n");        
         }else if(pid==0){
             execvp(comando->commands[0].argv[0], comando->commands->argv);
-            fprintf(stderr,"Error a la hora de hacer el comando");
+            fprintf(stderr,"Error a la hora de hacer el comando\n");
             exit(1);
         }else{
             wait(NULL);
@@ -34,11 +44,4 @@ int main(){
     return 0;
 }
 
-void manejador(int sig){
-    if (pid!=0){
-       
-    }else{
-
-    }
-}
 
