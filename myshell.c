@@ -7,14 +7,14 @@ int pid;
 
 void manejador(int sig){
 	if(pid == 0){
-		kill(getpid(), 19);
+		kill(getpid(), 9);
 	}
 }
 
 int main(){ 
     char buf[1024];
     tline * comando;
-    signal (SIGINT, SIG_IGN);//Ignoramos la señal CTLR+C
+    signal (SIGINT, manejador);//Ignoramos la señal CTLR+C
     
     printf("msh> ");
     while(fgets(buf, 1024, stdin)){
@@ -25,7 +25,7 @@ int main(){
 			continue;
 		}
         if (strcmp(comando->commands[0].argv[0],"exit")==0) {//cuando tenemos exit or CTLR+D terminamos
-            kill(getpid(),19); //mandamos un SIGSTOP para MyShell
+            kill(getpid(),9); //mandamos un SIGSTOP para MyShell
         }
         pid = fork();
         if (pid<0){
