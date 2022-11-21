@@ -1,13 +1,13 @@
 
 typedef struct {
-	char * filename;
-	int argc;
+	char * filename; 
+	int argc; 	
 	char ** argv;
 } tcommand;
 
 typedef struct {
 	int ncommands;
-	tcommand * commands;
+	tcommand * commands; 
 	char * redirect_input;
 	char * redirect_output;
 	char * redirect_error;

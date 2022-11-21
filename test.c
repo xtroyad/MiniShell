@@ -2,7 +2,7 @@
 
 #include "parser.h"
 
-int
+int 
 main(void) {
 	char buf[1024];
 	tline * line;
