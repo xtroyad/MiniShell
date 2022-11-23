@@ -55,7 +55,7 @@ int main(){
 		    }
             //-----------------------------------------------------------------------------------------
             if (pf==NULL){
-                
+                fprintf(stderr,"Error a la hora de abrir el fichero ");
             }
             execvp(comando->commands[0].argv[0], comando-> commands[0].argv);
             fprintf(stderr,"Error a la hora de hacer el comando\n");
