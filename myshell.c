@@ -30,8 +30,39 @@ int main(){
 			continue;
 		}
 
+        //EXIT
         if (strcmp(comando->commands[0].argv[0],"exit")==0) {//cuando tenemos exit or CTLR+D terminamos
             kill(getpid(),9); //mandamos un SIGKILL para MyShell
+        }
+
+        //CD
+        if (strcmp(comando->commands[0].argv[0],"cd")==0) {//cuando tenemos exit or CTLR+D terminamos
+            char *dir; 
+            char buffer[512];
+
+            //si solo tiene el nombre de cd ...
+            if (comando->commands[0].argc == 1){
+                dir = getenv("HOME");
+                if(dir == NULL){
+                    fprintf(stderr, "No existe la variable $HOME\n");
+                }
+            }
+
+            //si tiene el nombre del cd y un argumento
+            if (comando->commands[0].argc == 2){
+                dir = comado->commands[0].argv[1];
+            }
+
+            //si tiene el nombre y mas de un argumento 
+            if (comando->commands[0].argc > 2){
+               fprintf(stderr, "Numero de argumentos incorrecto para el cd\n");
+
+            }
+
+            //si salio mal el cambio de directorio
+            if(chdir(dir) != 0){
+                fprintf(stderr, "Error al cambiar de directorio\n");
+            }
         }
 
         pid = fork();
