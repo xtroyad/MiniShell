@@ -24,7 +24,7 @@ int main(){
     while(fgets(buf, 1024, stdin)){
         
         comando = tokenize(buf); 
-
+        
         if (comando->ncommands==0) {
             printf("\nmsh> ");
 			continue;
