@@ -60,10 +60,9 @@ int main(){
         comando = tokenize(buf); 
 
         //comprobar hijos bg
-        printf("%d\n", tamañoBG);
+
         comprobacionZombies();
-        printf("%d\n", tamañoBG);
-        
+  
         if (comando->ncommands==0) {
             printf("\nmsh> ");
 			continue;
@@ -274,8 +273,17 @@ void comprobacionZombies(){
 
             //si han terminado todos los procesos de esa linea ponemos la lista a NULL
             if(procBG[i].contTerminados == procBG[i].numPids){ 
-                procBG[i].pidsLineEst[j] = NULL; 
+                //procBG[i].pidsLineEst[j] = NULL; 
+                reorganizar(i);
             }
         }
     }
 }
+
+void reorganizar(int n){
+    for(int j=n; n<tamañoBG-1; j++){
+        procBG[j]=procBG[j+1];
+    }
+    procBG=(tBgElem*)realloc(procBG,--tamañoBG);
+}
+
