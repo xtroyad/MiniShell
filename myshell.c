@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <fcntl.h>
 
 
@@ -15,14 +16,30 @@ typedef struct {
     int p[2];
 } tPipe;
 
+//elemento de la lista de lineas al bg
+typedef struct {
+    int *pidsLineEst;
+    int numPids; //tamaño lista de pids
+    int contTerminados;
+    char *linea; 
+} tBgElem;
+
 char buf[1024];
 
 tline * comando;
 int pid;
-tPipe *pipes;
+tPipe *pipes; //array de pipes 
 int i;
 
+int status; 
+int tamañoBG; 
 
+//lista de pids de los mandatos de la linea
+pid_t *pidsLine; //aqui guardar pids de la linea y si hay que mandar a bg copiar en la de la estructura 
+
+
+//lista de prodesos en bg 
+tBgElem *procBG;
 
 void manejador(int sig){
 	if(pid > 0){
@@ -31,6 +48,9 @@ void manejador(int sig){
 }
 
 int main(){ 
+    tamañoBG = 0;
+
+    procBG = calloc(3, sizeof(tBgElem)); // lista de elementos de lineas al bg
 
     signal (SIGINT, manejador);//Ignoramos la señal CTLR+C
 
@@ -38,6 +58,11 @@ int main(){
     while(fgets(buf, 1024, stdin)){
         pid=0;
         comando = tokenize(buf); 
+
+        //comprobar hijos bg
+        printf("%d\n", tamañoBG);
+        comprobacionZombies();
+        printf("%d\n", tamañoBG);
         
         if (comando->ncommands==0) {
             printf("\nmsh> ");
@@ -51,10 +76,18 @@ int main(){
             continue;
         }
 
-        pipes = calloc(comando->ncommands-1,sizeof(tPipe));
+        pipes = (tPipe *)calloc(comando->ncommands-1,sizeof(tPipe));
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+        pidsLine = (int *)calloc(comando->ncommands, sizeof(int)); //lista de los pids de los mandatos de la linea
+
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+
 
         if (comando->ncommands==1){
             pid=fork();
+            pidsLine[i] = pid;
             i=0;
         }else{
             nmandatos();
@@ -69,13 +102,29 @@ int main(){
 
             exit(1);
 
-        }else{
-            for(int j =0; j<comando->ncommands;j++){
+        }
+        else{
+            if(comando->background==1){
+                tamañoBG++;
+                procBG = (tBgElem *)realloc(procBG, tamañoBG*sizeof(tBgElem));
 
-                wait(NULL);
+                procBG[tamañoBG-1].pidsLineEst = pidsLine; //Guarda pids de la linea en la lista del elem 
+                procBG[tamañoBG-1].numPids = comando->ncommands; //guarda el num de mandatos de la linea en el numpids
+                procBG[tamañoBG-1].contTerminados = 0; //inicia contador a cero 
+                pidsLine = NULL; 
             }
+            else {
+                for(int j =0; j<comando->ncommands;j++){
+                    wait(NULL);
+                }
+
+            }
+            //for(int k = 0; k<comando->ncommands; k++){
+                //printf("%d", pidsLine[k]);
+            //}
            
         }
+
         printf("\nmsh> ");
     }
     return 0;
@@ -132,7 +181,7 @@ void nmandatos(){
                 close(pipes[i].p[1]);//close(pp1[1]);
                 break;
             }else{ //Somos el padre
-                
+                pidsLine[i] = pid; //guarda pid en la lista 
                 close(pipes[i].p[1]);//close(pp1[1]);
                 
             
@@ -154,7 +203,7 @@ void nmandatos(){
                 break;
 
             }else{ //Somos el padre
-
+                pidsLine[i] = pid;
                 close(pipes[i-1].p[0]);//close(pp1[0]);
                 close(pipes[i].p[1]);//close(pp2[1]);
             
@@ -162,6 +211,7 @@ void nmandatos(){
 
         }else{
             pid = fork();
+            pidsLine[i] = pid;
             if (pid==0){
             
                 dup2(pipes[i-1].p[0],STDIN_FILENO);
@@ -210,5 +260,22 @@ void redirec(){
         }
         //-----------------------------------------------------------------------------------------
 
+    }
+}
+
+void comprobacionZombies(){
+    for(int i = 0; i < tamañoBG; i++){ //recorre lista procBG
+        for(int j = 0; j < procBG[i].numPids; j++){ //recorre lista del elem de procBG
+            waitpid(procBG[i].pidsLineEst[j], &status, WNOHANG);
+
+            if (WIFEXITED(status) == 0){ //si termina de manera normal...
+                procBG[i].contTerminados++;
+            }
+
+            //si han terminado todos los procesos de esa linea ponemos la lista a NULL
+            if(procBG[i].contTerminados == procBG[i].numPids){ 
+                procBG[i].pidsLineEst[j] = NULL; 
+            }
+        }
     }
 }
