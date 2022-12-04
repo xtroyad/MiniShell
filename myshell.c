@@ -50,7 +50,7 @@ void manejador(int sig){
 int main(){ 
     tamañoBG = 0;
 
-    procBG = calloc(3, sizeof(tBgElem)); // lista de elementos de lineas al bg
+    //procBG = calloc(3, sizeof(tBgElem)); // lista de elementos de lineas al bg
 
     signal (SIGINT, manejador);//Ignoramos la señal CTLR+C
 
@@ -72,16 +72,18 @@ int main(){
         }
         if (strcmp(comando->commands[0].argv[0],"cd")==0) {
             cd();
+            printf("\nmsh> ");
+            continue;
+        }
+        if (strcmp(comando->commands[0].argv[0],"jobs")==0) {
+            jobs();
+            printf("\nmsh> ");
             continue;
         }
 
         pipes = (tPipe *)calloc(comando->ncommands-1,sizeof(tPipe));
 
-//------------------------------------------------------------------------------------------------------------------------------------------
         pidsLine = (int *)calloc(comando->ncommands, sizeof(int)); //lista de los pids de los mandatos de la linea
-
-
-//------------------------------------------------------------------------------------------------------------------------------------------
 
 
         if (comando->ncommands==1){
@@ -106,6 +108,9 @@ int main(){
             if(comando->background==1){
                 tamañoBG++;
                 procBG = (tBgElem *)realloc(procBG, tamañoBG*sizeof(tBgElem));
+
+                procBG[tamañoBG-1].linea = strdup (buf); //guarda la linea de mandatos 
+                procBG[tamañoBG-1].linea[strlen(procBG[tamañoBG-1].linea) - 2] = '\0'; //cambiar el & por \0
 
                 procBG[tamañoBG-1].pidsLineEst = pidsLine; //Guarda pids de la linea en la lista del elem 
                 procBG[tamañoBG-1].numPids = comando->ncommands; //guarda el num de mandatos de la linea en el numpids
@@ -262,28 +267,44 @@ void redirec(){
     }
 }
 
+//-------------------------------------------------------------------------------------------------------------
 void comprobacionZombies(){
     for(int i = 0; i < tamañoBG; i++){ //recorre lista procBG
         for(int j = 0; j < procBG[i].numPids; j++){ //recorre lista del elem de procBG
-            waitpid(procBG[i].pidsLineEst[j], &status, WNOHANG);
 
-            if (WIFEXITED(status) == 0){ //si termina de manera normal...
-                procBG[i].contTerminados++;
+            if(waitpid(procBG[i].pidsLineEst[j], NULL, WNOHANG) == procBG[i].pidsLineEst[j]){
+                if (WIFEXITED(status) != 0){ //si termina de manera normal...
+                    if (WEXITSTATUS(status) == 0)
+                        procBG[i].contTerminados++;
+                }
             }
+        }
 
-            //si han terminado todos los procesos de esa linea ponemos la lista a NULL
+        //si han terminado todos los procesos de esa linea ponemos la lista a NULL
             if(procBG[i].contTerminados == procBG[i].numPids){ 
                 //procBG[i].pidsLineEst[j] = NULL; 
                 reorganizar(i);
+                i--;
             }
+    }
+}
+
+//-------------------------------------------------------------------------------------------------------------
+void reorganizar(int n){
+    if(tamañoBG > 1){
+        for(int j=n; j<tamañoBG-1; j++){
+            procBG[j]=procBG[j+1];
         }
     }
+
+    tamañoBG--;
+    //procBG = (tBgElem *)realloc(procBG, tamañoBG*sizeof(tBgElem));
+    //procBG=(tBgElem*)realloc(procBG,--tamañoBG);
 }
 
-void reorganizar(int n){
-    for(int j=n; n<tamañoBG-1; j++){
-        procBG[j]=procBG[j+1];
+//-------------------------------------------------------------------------------------------------------------
+void jobs(){
+    for (int i = 0; i < tamañoBG; i++){
+        printf("[%d]    running     %s\n", i+1, procBG[i].linea);
     }
-    procBG=(tBgElem*)realloc(procBG,--tamañoBG);
 }
-
