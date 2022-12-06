@@ -41,33 +41,36 @@ char buf[1024];
 //listas de pids 
 pid_t *pidsLine; //Array de pids de la linea (si mandamos a BG copiar en la lista de tBgElem) 
 pid_t* pidsFg; //Array de pids de linea en FG
+int nFg; //numero de comando en Fg
 
 mode_t mask; //guarda el numero de permisos que queremos quitar usando umask 
-
-//Cabeceras de funciones 
-void nmandatos();
+ 
+//Cabeceras de funciones
+void nmandatos();// hecho
 
 int mandatosInternos();
 void cd();
-void jobs();
-void fg(int n);
-void calculaUmask();
+void jobs(); //
+void fg(int n);//
+void calculaUmask();///hecho
 
-void redirec();
+void redirec();// hecho
 void comprobacionZombies();
 void reorganizar(int n);
 
 //Manejador de señales 
 int sig;
-void manejador(){
-    if (pidsFg!=0){
+int pidpadre;
 
-        for(int k=0; k<comando->ncommands; k++){
+void manejador ();
+void manejador2();
+
+void manejador(){
+
+    if (pidsFg!=0){
+        for(int k=0; k<nFg; k++){
             kill(pidsFg[k],9);
         }
-
-    }else{
-        signal (SIGINT, SIG_IGN);
     }
 }
 
@@ -81,12 +84,13 @@ void manejador2(){
 //COMIENZO DEL PROGRAMA
 //-------------------------------------------------------------------------------------------------------------
 int main(){ 
-
+    pidpadre=getpid();
+    
     //Vaciar el buffer ???
     setvbuf(stdout, NULL, _IONBF, 0);
-
-    //Señales de control
-    signal (SIGINT, manejador); //Ctrl + c -> entrar al manejador
+    
+    // Señales de control
+    signal (SIGINT, manejador); //Evitar Ctrl + c 
     signal (SIGUSR1, manejador2); // Señal de error al hacer un comando -> eliminar lo que se haya guardado en el BG
     signal(SIGCHLD,comprobacionZombies); //Señal de hijo terminado -> entrar a comprobacionZombies
 
@@ -95,7 +99,8 @@ int main(){
     pidsFg=0;
     tamañoBG=0;
     mask = 18; //18 en octal => 22 en decimal (mode_t guarda el numero en octal)  
-
+    comando=0;
+    
     printf("msh> ");
 
     while(fgets(buf, 1024, stdin)){
@@ -137,6 +142,10 @@ int main(){
         }
     
         if (pid==0){ //Si es el hijo
+
+            
+            signal (SIGINT, SIG_IGN);
+            
 
             redirec(); //Comprueba si hay redirecciones en la linea 
                 
@@ -188,6 +197,7 @@ int main(){
 
                 //Guardamos los pids de la linea
                 pidsFg=pidsLine; 
+                nFg=comando->ncommands;
                 pidsLine=0;
 
                 for(int j =0; j<comando->ncommands;j++){
@@ -195,6 +205,7 @@ int main(){
                 }
 
                 pidsFg=0;
+                nFg=0;
 
             }
             
@@ -389,6 +400,7 @@ void redirec(){
         if (comando->redirect_output != NULL && i==comando->ncommands-1 ) {
 
             int fd=open(comando->redirect_output,  O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR| S_IWUSR | S_IRGRP|S_IROTH );
+            
             if (fd <0){
                 fprintf(stderr, "Error al abrir el fichero\n");
                 exit(1);
@@ -459,7 +471,7 @@ void reorganizar(int n){
 //-------------------------------------------------------------------------------------------------------------
 void jobs(){ //Imprime los procesos de la lista procBG
 
-    signal (SIGINT, manejador); //Ctrl + c -> entrar al manejador
+    //signal (SIGINT, manejador); //Ctrl + c -> entrar al manejador
 
     for (int i = 0; i < tamañoBG; i++){
         printf("[%d]    running     %s\n", i+1, procBG[i].linea);
@@ -468,16 +480,19 @@ void jobs(){ //Imprime los procesos de la lista procBG
 
 //-------------------------------------------------------------------------------------------------------------
 void fg(int n){ //Manda una linea que esta en BG al FG
-
-    signal (SIGINT, manejador); //Ctrl + c -> entrar al manejador
-
+    //signal (SIGINT, manejador);
+    
     if (n<=tamañoBG){
         pidsFg=procBG[n-1].pidsLineEst;
-
+        nFg=procBG[n-1].numPids;
+        
         for (int j = 0; j <procBG[n-1].numPids; j++){
             waitpid(procBG[n-1].pidsLineEst[j],NULL,0);
         }
-        
+        procBG[n-1].pidsLineEst=0;
+
+        pidsFg=0;
+        nFg=0;
         reorganizar(n-1);
     }
     else{
@@ -488,9 +503,6 @@ void fg(int n){ //Manda una linea que esta en BG al FG
 
 //-----------------------------------------------------------------------------------------------------------------------------------------
 void calculaUmask(){ 
-
-    signal (SIGINT, manejador); //Ctrl + c -> entrar al manejador
-
     //si tiene solo el nombre 
     if (comando->commands[0].argc == 1){
         printf("%04o\n", mask); //imprimir el valor de la variable oldmask
