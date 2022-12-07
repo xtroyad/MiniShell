@@ -60,7 +60,6 @@ void reorganizar(int n);
 
 //Manejador de señales 
 int sig;
-int pidpadre;
 
 void manejador ();
 void manejador2();
@@ -72,11 +71,11 @@ void manejador(){
             kill(pidsFg[k],9);
         }
     }
+
 }
 
 void manejador2(){
     reorganizar(tamañoBG-1);
-   
 }
 
 
@@ -84,9 +83,8 @@ void manejador2(){
 //COMIENZO DEL PROGRAMA
 //-------------------------------------------------------------------------------------------------------------
 int main(){ 
-    pidpadre=getpid();
     
-    //Vaciar el buffer ???
+    //Imprime lo que haya en el buffer de forma inmediata 
     setvbuf(stdout, NULL, _IONBF, 0);
     
     // Señales de control
@@ -143,10 +141,8 @@ int main(){
     
         if (pid==0){ //Si es el hijo
 
-            
             signal (SIGINT, SIG_IGN);
             
-
             redirec(); //Comprueba si hay redirecciones en la linea 
                 
             execvp(comando->commands[i].argv[0], comando-> commands[i].argv); //Crea el proceso hijo
@@ -227,12 +223,14 @@ int main(){
     free(pipes); 
     free(procBG); 
     return 0;
+
 }
 
 //-------------------------------------------------------------------------------------------------------------
 //FUNCIONES AUXILIARES
 //-------------------------------------------------------------------------------------------------------------
 int mandatosInternos(){
+
     int true=0;
 
     if (strcmp(comando->commands[0].argv[0],"exit")==0) {//cuando tenemos exit or CTLR+D terminamos
@@ -271,11 +269,12 @@ int mandatosInternos(){
         true=1; 
     }
     return true;
+
 }
 
 //-------------------------------------------------------------------------------------------------------------
 void cd(){
-    
+
     char *dir; 
    
     //si solo tiene el nombre de cd ...
@@ -289,6 +288,11 @@ void cd(){
     //si tiene el nombre del cd y un argumento
     if (comando->commands[0].argc == 2){
         dir = comando->commands[0].argv[1];
+
+        //si salio mal el cambio de directorio
+        if(chdir(dir) != 0){
+            fprintf(stderr, "Error al cambiar de directorio\n");
+        }
     }
 
     //si tiene el nombre y mas de un argumento 
@@ -296,14 +300,11 @@ void cd(){
         fprintf(stderr, "Numero de argumentos incorrecto para el cd\n");
     }
 
-    //si salio mal el cambio de directorio
-    if(chdir(dir) != 0){
-        fprintf(stderr, "Error al cambiar de directorio\n");
-    }
 }
 
 //-------------------------------------------------------------------------------------------------------------
 void nmandatos(){
+
     for(i=0; i<comando->ncommands; i++){
         
         if (i==0){ //PRIMER MANDATO DE LA LINEA
@@ -380,10 +381,12 @@ void nmandatos(){
         }
         
     }
+
 }
 
 //-------------------------------------------------------------------------------------------------------------
 void redirec(){
+
     if( (comando->ncommands==1) ||(i==0 || i==comando->ncommands-1 )){
 
         if (comando->redirect_input != NULL && i==0) {
@@ -420,21 +423,22 @@ void redirec(){
         }
         //-----------------------------------------------------------------------------------------
     }
+
 }
 
 //-------------------------------------------------------------------------------------------------------------
 void comprobacionZombies(){
-    int k;
-    for(k = 0; k < tamañoBG; k++){ //Recorre lista procBG
+
+    for(int k = 0; k < tamañoBG; k++){ //Recorre lista procBG
         for(int j = 0; j < procBG[k].numPids; j++){ //Recorre lista del elem de procBG, busca el que mando la señal
                 
             //Comprobamos si termino el proceso 
             if(waitpid(procBG[k].pidsLineEst[j], &status, WNOHANG) == procBG[k].pidsLineEst[j]){
                 //WIFEXITED y WEXITSTATUS se podrian quitar 
-                if (WIFEXITED(status) != 0){ //si termina de manera normal...
-                    if (WEXITSTATUS(status) == 0)
+                //if (WIFEXITED(status) != 0){ //si termina de manera normal...
+                    //if (WEXITSTATUS(status) == 0)
                         procBG[k].contTerminados++; //Aumenta contador de procesos terminados en esa linea
-                }
+                //}
             }
 
         }
@@ -451,10 +455,12 @@ void comprobacionZombies(){
 
         }
     }
+
 }
 
 //-------------------------------------------------------------------------------------------------------------
 void reorganizar(int n){
+
     free(procBG[n].pidsLineEst); //libera la mem de la lista de pids del elem eliminado 
     free(procBG[n].linea); //libera la mem de la lista que guardaba la linea 
 
@@ -466,22 +472,21 @@ void reorganizar(int n){
 
     }
     tamañoBG--; //disminuimos el tamaño para redimensionar la lista despues 
+
 }
 
 //-------------------------------------------------------------------------------------------------------------
 void jobs(){ //Imprime los procesos de la lista procBG
 
-    //signal (SIGINT, manejador); //Ctrl + c -> entrar al manejador
-
     for (int i = 0; i < tamañoBG; i++){
         printf("[%d]    running     %s\n", i+1, procBG[i].linea);
     }
+
 }
 
 //-------------------------------------------------------------------------------------------------------------
 void fg(int n){ //Manda una linea que esta en BG al FG
-    //signal (SIGINT, manejador);
-    
+
     if (n<=tamañoBG){
         pidsFg=procBG[n-1].pidsLineEst;
         nFg=procBG[n-1].numPids;
@@ -499,10 +504,12 @@ void fg(int n){ //Manda una linea que esta en BG al FG
         printf("Argumento incorrecto\n");
         exit(1);
     }
+
 }
 
-//-----------------------------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------
 void calculaUmask(){ 
+
     //si tiene solo el nombre 
     if (comando->commands[0].argc == 1){
         printf("%04o\n", mask); //imprimir el valor de la variable oldmask
@@ -511,7 +518,7 @@ void calculaUmask(){
     //si tiene el nombre y una argumento
     if (comando->commands[0].argc == 2){
         sscanf(comando->commands[0].argv[1],"%ho",&mask); //guardamos el numero en la var mask 
-        if(mask <= 0666 && mask >= 0){ 
+        if(mask >= 0 && mask <= 0666){ 
             umask(mask); //llamamos a umask para que haga la resta 
         }
         else{
@@ -524,4 +531,5 @@ void calculaUmask(){
     if (comando->commands[0].argc > 2){
         fprintf(stderr, "Numero de argumentos incorrecto para el umask\n");
     }
+
 }
